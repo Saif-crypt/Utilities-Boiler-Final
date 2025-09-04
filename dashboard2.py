@@ -46,59 +46,13 @@ with st.sidebar:
 
     st.info("💡 Tip: Use filters to analyze boiler-specific KPIs", icon="ℹ️")
     st.caption("⚙️ Developed by Your Team | Powered by Streamlit")
-
-    
-    # Logo / Icon
-    st.image("https://img.icons8.com/emoji/96/fire.png", width=60)
-    st.markdown('<p class="sidebar-title">Boiler Plant Dashboard</p>', unsafe_allow_html=True)
-    st.markdown('<p class="sidebar-sub">Monitor 🔥 Efficiency, ⚡ Output, ⛽ Fuel & 📊 Trends</p>', unsafe_allow_html=True)
-
-    st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
-
-    # Boiler selection
-    boiler_choice = st.radio("Select Boiler", ["All Boilers", "Boiler 1", "Boiler 2"], index=0)
-
-    # Date filter
-    st.date_input("📅 Select Date Range", [])
-
-    # Shift selection
-    shift = st.selectbox("🕒 Shift", ["All", "Morning", "Evening", "Night"])
-
-    st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
-
-    # Info card
-    st.info("💡 Tip: Use filters to analyze boiler-specific KPIs", icon="ℹ️")
-
-    # Footer
-    st.caption("⚙️ Developed by Your Team | Powered by Streamlit")
 # --- COOL SIDEBAR END ---
 
-
-CSV_PATH = "boiler_phase3_dashboard.csv"  # Or upload/file selector if desired
+# ---- LOAD DATA ----
+CSV_PATH = "boiler_phase3_dashboard.csv"
 df = pd.read_csv(CSV_PATH)
 
-# Make a working copy for filtering
-df_filtered = df.copy()
-
-# Apply boiler filter
-if boiler_choice == "Boiler 1":
-    df_filtered["Total_Fuel_m3"] = df[b1_fuel]
-    df_filtered["Total_Steam_Tons"] = df[b1_steam]
-elif boiler_choice == "Boiler 2":
-    df_filtered["Total_Fuel_m3"] = df[b2_fuel]
-    df_filtered["Total_Steam_Tons"] = df[b2_steam]
-# if "All Boilers", keep totals (already calculated)
-
-# Apply date filter if timestamp exists
-if ts_col and len(date_range) == 2:
-    start, end = pd.to_datetime(date_range)
-    df_filtered = df_filtered[(df_filtered[ts_col] >= start) & (df_filtered[ts_col] <= end)]
-
-# Apply shift filter (⚠️ only works if your dataset has a "Shift" column)
-if "Shift" in df_filtered.columns and shift != "All":
-    df_filtered = df_filtered[df_filtered["Shift"] == shift]
-
-
+# --- Column Picker ---
 def pick(names):
     return next((n for n in names if n in df.columns), None)
 
@@ -110,6 +64,7 @@ b2_steam = pick(["Boiler2_Steam_Tons", "Boiler2_Steam_Ton", "B2_Steam_Tons"])
 eff_col  = pick(["Overall_Efficiency_%", "Efficiency_Pred", "Boiler_Efficiency"])
 o2_col   = pick(["O2_Percent", "Boiler1_O2_%", "O2_%"])
 
+# --- Validate Columns ---
 missing_core = [n for n,v in {
     "Boiler1 fuel": b1_fuel,
     "Boiler2 fuel": b2_fuel,
@@ -120,6 +75,7 @@ if missing_core:
     st.error("Missing required columns: " + ", ".join(missing_core))
     st.stop()
 
+# --- Preprocess ---
 if ts_col:
     df[ts_col] = pd.to_datetime(df[ts_col], errors="coerce")
 df["Total_Fuel_m3"] = df[b1_fuel].fillna(0) + df[b2_fuel].fillna(0)
@@ -128,17 +84,38 @@ if eff_col is None:
     df["Overall_Efficiency_%"] = (df["Total_Steam_Tons"] / df["Total_Fuel_m3"].replace(0, np.nan)) * 100
     eff_col = "Overall_Efficiency_%"
 
-# ---- Fancier KPIs ----
+# ---- Apply Filters ----
+df_filtered = df.copy()
+
+# Boiler filter
+if boiler_choice == "Boiler 1":
+    df_filtered["Total_Fuel_m3"] = df[b1_fuel]
+    df_filtered["Total_Steam_Tons"] = df[b1_steam]
+elif boiler_choice == "Boiler 2":
+    df_filtered["Total_Fuel_m3"] = df[b2_fuel]
+    df_filtered["Total_Steam_Tons"] = df[b2_steam]
+
+# Date filter
+if ts_col and len(date_range) == 2:
+    start, end = pd.to_datetime(date_range)
+    df_filtered = df_filtered[(df_filtered[ts_col] >= start) & (df_filtered[ts_col] <= end)]
+
+# Shift filter
+if "Shift" in df_filtered.columns and shift != "All":
+    df_filtered = df_filtered[df_filtered["Shift"] == shift]
+
+# ---- KPIs ----
 c1, c2, c3 = st.columns(3)
-c1.metric("Total Fuel (m³)", f"{df['Total_Fuel_m3'].sum():,.0f}",
-          delta=f"{df['Total_Fuel_m3'].diff().iloc[-1]:+.0f}" if len(df) > 1 else None)
-c2.metric("Total Steam (tons)", f"{df['Total_Steam_Tons'].sum():,.0f}",
-          delta=f"{df['Total_Steam_Tons'].diff().iloc[-1]:+.0f}" if len(df) > 1 else None)
-c3.metric("Avg Efficiency (%)", f"{df[eff_col].mean():.2f}",
-          delta=f"{df[eff_col].diff().iloc[-1]:+.2f}" if len(df) > 1 else None)
+c1.metric("Total Fuel (m³)", f"{df_filtered['Total_Fuel_m3'].sum():,.0f}",
+          delta=f"{df_filtered['Total_Fuel_m3'].diff().iloc[-1]:+.0f}" if len(df_filtered) > 1 else None)
+c2.metric("Total Steam (tons)", f"{df_filtered['Total_Steam_Tons'].sum():,.0f}",
+          delta=f"{df_filtered['Total_Steam_Tons'].diff().iloc[-1]:+.0f}" if len(df_filtered) > 1 else None)
+c3.metric("Avg Efficiency (%)", f"{df_filtered[eff_col].mean():.2f}",
+          delta=f"{df_filtered[eff_col].diff().iloc[-1]:+.2f}" if len(df_filtered) > 1 else None)
 
 st.markdown("---")
 
+# ---- TABS ----
 tab1, tab2, tab3, tab4 = st.tabs([
     "📊 Trends",
     "⚡ Efficiency vs O₂",
@@ -148,7 +125,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
 with tab1:
     st.subheader("Fuel & Steam Over Time")
     if ts_col:
-        df_trend = df.copy().set_index(ts_col).sort_index()
+        df_trend = df_filtered.copy().set_index(ts_col).sort_index()
         df_trend["Fuel_roll"] = df_trend["Total_Fuel_m3"].rolling(3, min_periods=1).mean()
         df_trend["Steam_roll"] = df_trend["Total_Steam_Tons"].rolling(3, min_periods=1).mean()
         fig = go.Figure()
@@ -176,7 +153,7 @@ with tab2:
     st.subheader("Efficiency vs O₂%")
     if o2_col:
         fig = px.scatter(
-            df, x=o2_col, y=eff_col, size="Total_Fuel_m3",
+            df_filtered, x=o2_col, y=eff_col, size="Total_Fuel_m3",
             color="Total_Steam_Tons", color_continuous_scale="Turbo",
             labels={o2_col: "O₂ %", eff_col: "Efficiency %"}, 
             hover_data=[ts_col],
@@ -191,8 +168,8 @@ with tab3:
     st.subheader("Boiler Totals and Comparison")
     comp = pd.DataFrame({
         "Boiler": ["Boiler 1", "Boiler 2"],
-        "Fuel_m3":  [df[b1_fuel].sum(),  df[b2_fuel].sum()],
-        "Steam_t":  [df[b1_steam].sum(), df[b2_steam].sum()]
+        "Fuel_m3":  [df_filtered[b1_fuel].sum(),  df_filtered[b2_fuel].sum()],
+        "Steam_t":  [df_filtered[b1_steam].sum(), df_filtered[b2_steam].sum()]
     })
     fig = px.bar(comp.melt(id_vars="Boiler"), x="Boiler", y="value", color='variable', barmode="group", text_auto=True,
                  title="Fuel & Steam Totals")
@@ -202,14 +179,14 @@ with tab3:
 with tab4:
     st.subheader("Data Heatmap")
     if ts_col:
-        pivot = df[[ts_col, eff_col, o2_col]].copy().dropna()
+        pivot = df_filtered[[ts_col, eff_col, o2_col]].copy().dropna()
         pivot.set_index(ts_col, inplace=True)
         st.dataframe(pivot.style.background_gradient(cmap='YlGnBu'))
     else:
         st.info("Timestamp not found for heatmap.")
 
 with st.expander("📂 Download / Raw Data"):
-    st.dataframe(df)
-    st.download_button('Download CSV', df.to_csv(index=False), file_name='boiler_dashboard_filtered.csv', mime='text/csv')
+    st.dataframe(df_filtered)
+    st.download_button('Download CSV', df_filtered.to_csv(index=False), file_name='boiler_dashboard_filtered.csv', mime='text/csv')
 
 st.caption("Made with Streamlit • Developed by Your Team 🚀")
