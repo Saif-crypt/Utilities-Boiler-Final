@@ -1,67 +1,98 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 
-# ---------------------------
-# Load Data
-# ---------------------------
-df = pd.read_csv("boiler_phase3_dashboard.csv", parse_dates=["Timestamp"])
-
 st.set_page_config(page_title="Boiler Plant Dashboard", layout="wide")
-
 st.title("🔥 Boiler Plant Dashboard")
-st.markdown("Monitor performance, efficiency, and fuel usage of Boiler 1 & Boiler 2")
+st.caption("Monitor performance, efficiency, and fuel usage of Boiler 1 & Boiler 2")
 
-# ---------------------------
-# KPIs
-# ---------------------------
-total_fuel = df["Fuel_Consumption_m3"].sum()
-total_steam = df["Steam_Flow_TPH"].sum()
-avg_eff = df["Boiler_Efficiency"].mean()
+# ---- Load data ----
+CSV_PATH = "boiler_phase3_dashboard.csv"  # change if your file is named differently
+df = pd.read_csv(CSV_PATH)
 
-col1, col2, col3 = st.columns(3)
-col1.metric("Total Fuel Used (m³)", f"{total_fuel:,.0f}")
-col2.metric("Total Steam Generated (TPH)", f"{total_steam:,.0f}")
-col3.metric("Avg Efficiency (%)", f"{avg_eff:.2f}")
+# ---- Flexible column mapping ----
+def pick(names):
+    return next((n for n in names if n in df.columns), None)
 
-# ---------------------------
-# Tabs for Analysis
-# ---------------------------
-tab1, tab2, tab3 = st.tabs(["📊 Trends", "⚡ Efficiency Analysis", "🛠 Boiler Comparison"])
+ts_col   = pick(["Timestamp", "timestamp", "Date", "Datetime"])
+b1_fuel  = pick(["Boiler1_FuelConsumption_m3", "Boiler1_Fuel_m3", "B1_Fuel_m3"])
+b2_fuel  = pick(["Boiler2_FuelConsumption_m3", "Boiler2_Fuel_m3", "B2_Fuel_m3"])
+b1_steam = pick(["Boiler1_Steam_Tons", "Boiler1_Steam_Ton", "B1_Steam_Tons"])
+b2_steam = pick(["Boiler2_Steam_Tons", "Boiler2_Steam_Ton", "B2_Steam_Tons"])
+eff_col  = pick(["Overall_Efficiency_%", "Efficiency_Pred", "Boiler_Efficiency"])
+o2_col   = pick(["O2_Percent", "Boiler1_O2_%", "O2_%"])
+
+missing_core = [n for n,v in {
+    "Boiler1 fuel": b1_fuel,
+    "Boiler2 fuel": b2_fuel,
+    "Boiler1 steam": b1_steam,
+    "Boiler2 steam": b2_steam
+}.items() if v is None]
+
+if missing_core:
+    st.error("Missing required columns: " + ", ".join(missing_core))
+    st.stop()
+
+# ---- Prepare fields ----
+if ts_col:
+    df[ts_col] = pd.to_datetime(df[ts_col], errors="coerce")
+
+df["Total_Fuel_m3"]     = df[b1_fuel].fillna(0) + df[b2_fuel].fillna(0)
+df["Total_Steam_Tons"]  = df[b1_steam].fillna(0) + df[b2_steam].fillna(0)
+
+if eff_col is None:
+    # Simple proxy if not provided
+    df["Overall_Efficiency_%"] = (df["Total_Steam_Tons"] / df["Total_Fuel_m3"].replace(0, np.nan)) * 100
+    eff_col = "Overall_Efficiency_%"
+
+# ---- KPIs ----
+c1, c2, c3 = st.columns(3)
+c1.metric("Total Fuel (m³)", f"{df['Total_Fuel_m3'].sum():,.0f}")
+c2.metric("Total Steam (tons)", f"{df['Total_Steam_Tons'].sum():,.0f}")
+c3.metric("Avg Efficiency (%)", f"{df[eff_col].mean():.2f}")
+
+# ---- Tabs ----
+tab1, tab2, tab3 = st.tabs(["📊 Trends", "⚡ Efficiency vs O₂", "🛠 Boiler Comparison"])
 
 with tab1:
-    st.subheader("Fuel vs Steam Trend")
-    fig1 = px.line(df, x="Timestamp", y=["Fuel_Consumption_m3", "Steam_Flow_TPH"],
-                   labels={"value": "Reading", "variable": "Parameter"},
-                   title="Fuel Consumption vs Steam Flow Over Time")
-    st.plotly_chart(fig1, use_container_width=True)
+    st.subheader("Fuel & Steam over Time")
+    if ts_col:
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=df[ts_col], y=df["Total_Fuel_m3"], name="Total Fuel (m³)"))
+        fig.add_trace(go.Scatter(x=df[ts_col], y=df["Total_Steam_Tons"], name="Total Steam (t)", yaxis="y2"))
+        fig.update_layout(
+            xaxis_title="Time",
+            yaxis=dict(title="Fuel (m³)"),
+            yaxis2=dict(title="Steam (t)", overlaying="y", side="right"),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("No Timestamp column found; showing totals only.")
 
 with tab2:
     st.subheader("Efficiency vs O₂%")
-    fig2 = px.scatter(df, x="O2_Percent", y="Boiler_Efficiency",
-                      size="Fuel_Consumption_m3", color="Steam_Flow_TPH",
-                      hover_data=["Timestamp"],
-                      title="Boiler Efficiency vs Oxygen %")
-    st.plotly_chart(fig2, use_container_width=True)
-
-    st.subheader("ΔT Stack Temperature Distribution")
-    fig3 = px.histogram(df, x="DeltaT_Stack", nbins=20, color_discrete_sequence=["red"])
-    st.plotly_chart(fig3, use_container_width=True)
+    if o2_col:
+        fig = px.scatter(
+            df, x=o2_col, y=eff_col, size="Total_Fuel_m3", color="Total_Steam_Tons",
+            labels={o2_col: "O₂ %", eff_col: "Efficiency %"}, title="Efficiency vs Oxygen"
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("O₂ column not found; skipping this chart.")
 
 with tab3:
-    st.subheader("Boiler 1 vs Boiler 2 Performance")
-    avg_data = df.groupby("Boiler")[
-        ["Fuel_Consumption_m3", "Steam_Flow_TPH", "Boiler_Efficiency"]
-    ].mean().reset_index()
+    st.subheader("Boiler Totals")
+    comp = pd.DataFrame({
+        "Boiler": ["Boiler 1", "Boiler 2"],
+        "Fuel_m3":  [df[b1_fuel].sum(),  df[b2_fuel].sum()],
+        "Steam_t":  [df[b1_steam].sum(), df[b2_steam].sum()]
+    })
+    fig = px.bar(comp, x="Boiler", y=["Fuel_m3", "Steam_t"], barmode="group", text_auto=True,
+                 title="Fuel & Steam Totals")
+    st.plotly_chart(fig, use_container_width=True)
 
-    fig4 = px.bar(avg_data, x="Boiler", y="Boiler_Efficiency",
-                  color="Boiler", text_auto=".2f",
-                  title="Average Efficiency by Boiler")
-    st.plotly_chart(fig4, use_container_width=True)
-
-# ---------------------------
-# Raw Data Expander
-# ---------------------------
-with st.expander("📂 View Raw Data"):
+with st.expander("📂 Raw data"):
     st.dataframe(df)
