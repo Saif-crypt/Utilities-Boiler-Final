@@ -31,6 +31,23 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
+    st.image("https://img.icons8.com/emoji/96/fire.png", width=60)
+    st.markdown('<p class="sidebar-title">Boiler Plant Dashboard</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sidebar-sub">Monitor 🔥 Efficiency, ⚡ Output, ⛽ Fuel & 📊 Trends</p>', unsafe_allow_html=True)
+
+    st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+
+    # Sidebar filters
+    boiler_choice = st.radio("Select Boiler", ["All Boilers", "Boiler 1", "Boiler 2"], index=0)
+    date_range = st.date_input("📅 Select Date Range", [])
+    shift = st.selectbox("🕒 Shift", ["All", "Morning", "Evening", "Night"])
+
+    st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+
+    st.info("💡 Tip: Use filters to analyze boiler-specific KPIs", icon="ℹ️")
+    st.caption("⚙️ Developed by Your Team | Powered by Streamlit")
+
+    
     # Logo / Icon
     st.image("https://img.icons8.com/emoji/96/fire.png", width=60)
     st.markdown('<p class="sidebar-title">Boiler Plant Dashboard</p>', unsafe_allow_html=True)
@@ -59,6 +76,28 @@ with st.sidebar:
 
 CSV_PATH = "boiler_phase3_dashboard.csv"  # Or upload/file selector if desired
 df = pd.read_csv(CSV_PATH)
+
+# Make a working copy for filtering
+df_filtered = df.copy()
+
+# Apply boiler filter
+if boiler_choice == "Boiler 1":
+    df_filtered["Total_Fuel_m3"] = df[b1_fuel]
+    df_filtered["Total_Steam_Tons"] = df[b1_steam]
+elif boiler_choice == "Boiler 2":
+    df_filtered["Total_Fuel_m3"] = df[b2_fuel]
+    df_filtered["Total_Steam_Tons"] = df[b2_steam]
+# if "All Boilers", keep totals (already calculated)
+
+# Apply date filter if timestamp exists
+if ts_col and len(date_range) == 2:
+    start, end = pd.to_datetime(date_range)
+    df_filtered = df_filtered[(df_filtered[ts_col] >= start) & (df_filtered[ts_col] <= end)]
+
+# Apply shift filter (⚠️ only works if your dataset has a "Shift" column)
+if "Shift" in df_filtered.columns and shift != "All":
+    df_filtered = df_filtered[df_filtered["Shift"] == shift]
+
 
 def pick(names):
     return next((n for n in names if n in df.columns), None)
