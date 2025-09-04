@@ -8,13 +8,54 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="Boiler Plant Dashboard", layout="wide", page_icon="🔥")
 st.markdown("<style>footer {visibility: hidden;} .big-metric {font-size: 2rem;} </style>", unsafe_allow_html=True)
 
+# --- COOL SIDEBAR START ---
 with st.sidebar:
-    st.image("https://img.icons8.com/emoji/96/boiler-emoji.png", width=80)
-    st.markdown("## Boiler Plant Stats")
-    st.caption("Monitor efficiency, output, fuel, & trends")
-    # User: Add filter option if needed (date or shift etc.), example:
-    # shift = st.selectbox("Shift", ["All", "Morning", "Evening", "Night"])
-    st.info("KPIs at-a-glance + visual insights", icon="📈")
+    st.markdown(
+        """
+        <style>
+        .sidebar-title {
+            font-size: 22px !important;
+            font-weight: bold;
+            color: #FF4B4B;
+        }
+        .sidebar-sub {
+            font-size: 14px !important;
+            color: #888;
+        }
+        .sidebar-divider {
+            border-top: 1px solid #444;
+            margin: 10px 0;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # Logo / Icon
+    st.image("https://img.icons8.com/emoji/96/fire.png", width=60)
+    st.markdown('<p class="sidebar-title">Boiler Plant Dashboard</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sidebar-sub">Monitor 🔥 Efficiency, ⚡ Output, ⛽ Fuel & 📊 Trends</p>', unsafe_allow_html=True)
+
+    st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+
+    # Boiler selection
+    boiler_choice = st.radio("Select Boiler", ["All Boilers", "Boiler 1", "Boiler 2"], index=0)
+
+    # Date filter
+    st.date_input("📅 Select Date Range", [])
+
+    # Shift selection
+    shift = st.selectbox("🕒 Shift", ["All", "Morning", "Evening", "Night"])
+
+    st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+
+    # Info card
+    st.info("💡 Tip: Use filters to analyze boiler-specific KPIs", icon="ℹ️")
+
+    # Footer
+    st.caption("⚙️ Developed by Your Team | Powered by Streamlit")
+# --- COOL SIDEBAR END ---
+
 
 CSV_PATH = "boiler_phase3_dashboard.csv"  # Or upload/file selector if desired
 df = pd.read_csv(CSV_PATH)
