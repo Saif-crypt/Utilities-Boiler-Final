@@ -6,9 +6,9 @@ df = pd.read_csv('boiler_efficiency_dashboard.csv')
 st.set_page_config(page_title="Boiler Efficiency Summary", layout="centered")
 st.title("Boiler Efficiency Summary")
 
-# Verify DataFrame not empty
-if df.shape > 0:
-    row = df.iloc  # Correctly extract the first row
+# Correct check for non-empty DataFrame
+if len(df) > 0:  # or df.shape > 0
+    row = df.iloc  # Extract the first row safely
     col1, col2, col3 = st.columns(3)
 
     col1.metric("Efficiency (%)", f"{row['Efficiency']:.2f}")
