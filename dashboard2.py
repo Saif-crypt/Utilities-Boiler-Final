@@ -57,12 +57,12 @@ def pick(names):
     return next((n for n in names if n in df.columns), None)
 
 ts_col   = pick(["Timestamp", "timestamp", "Date", "Datetime"])
-b1_fuel  = pick(["Boiler1_FuelConsumption_m3", "Boiler1_Fuel_m3", "B1_Fuel_m3"])
-b2_fuel  = pick(["Boiler2_FuelConsumption_m3", "Boiler2_Fuel_m3", "B2_Fuel_m3"])
-b1_steam = pick(["Boiler1_Steam_Tons", "Boiler1_Steam_Ton", "B1_Steam_Tons"])
-b2_steam = pick(["Boiler2_Steam_Tons", "Boiler2_Steam_Ton", "B2_Steam_Tons"])
+b1_fuel  = pick(["Boiler1_NG_Consumption_Nm3", "Boiler1_Fuel_m3", "B1_Fuel_m3"])
+b2_fuel  = pick(["Boiler2_NG_Consumption_Nm3", "Boiler2_Fuel_m3", "B2_Fuel_m3"])
+b1_steam = pick(["Boiler1_Steam_Production_tons", "Boiler1_Steam_Ton", "B1_Steam_Tons"])
+b2_steam = pick(["Boiler2_Steam_Production_tons", "Boiler2_Steam_Ton", "B2_Steam_Tons"])
 eff_col  = pick(["Overall_Efficiency_%", "Efficiency_Pred", "Boiler_Efficiency"])
-o2_col   = pick(["O2_Percent", "Boiler1_O2_%", "O2_%"])
+o2_col   = pick(["O2_Percent", "BOILER1_A.P.H_FLUE_GAS_O2_%", "O2_%"])
 
 # --- Validate Columns ---
 missing_core = [n for n,v in {
