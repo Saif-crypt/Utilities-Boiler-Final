@@ -6,14 +6,24 @@ df = pd.read_csv('boiler_efficiency_dashboard.csv')
 st.set_page_config(page_title="Boiler Efficiency Summary", layout="centered")
 st.title("Boiler Efficiency Summary")
 
-# Correct check for non-empty DataFrame
-if len(df) > 0:  # or df.shape > 0
-    row = df.iloc  # Extract the first row safely
-    col1, col2, col3 = st.columns(3)
+# Show columns for debugging
+st.write("Columns:", df.columns.tolist())
+st.write("First row data:", df.head(1))
 
-    col1.metric("Efficiency (%)", f"{row['Efficiency']:.2f}")
-    col2.metric("Conversion Rate", f"{row['Conversion_Rate']:.2f}")
-    col3.metric("Boiler Yield", f"{row['Boiler_Yield']:.2f}")
+if len(df) > 0:
+    # It's safest to use .iloc, check if columns exist
+    try:
+        efficiency_value = df.iloc[df.columns.get_loc('Efficiency')]
+        conversion_rate_value = df.iloc[df.columns.get_loc('Conversion_Rate')]
+        boiler_yield_value = df.iloc[df.columns.get_loc('Boiler_Yield')]
+    except Exception as e:
+        st.error(f"Column indexing error: {e}")
+        st.stop()
+        
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Efficiency (%)", f"{efficiency_value:.2f}")
+    col2.metric("Conversion Rate", f"{conversion_rate_value:.2f}")
+    col3.metric("Boiler Yield", f"{boiler_yield_value:.2f}")
 
     with st.expander("Show All Input Details"):
         st.write(df)
