@@ -17,10 +17,10 @@ st.set_page_config(page_title="Boiler Efficiency Dashboard", layout="wide")
 st.title("🔥 Boiler Efficiency & Anomaly Detection Dashboard")
 
 # File uploader
-uploaded_file = st.file_uploader("Upload Boiler Dataset (CSV)", type=["csv"])
+uploaded_file = st.file_uploader("boiler_dataset_repaired_for_dashboard.csv", type=["csv"])
 
 if uploaded_file is not None:
-    df = pd.read_csv(boiler_dataset_repaired_for_dashboard.csv)
+    df = pd.read_csv(CSV_PATH)
 
     # -------------------------------
     # Phase 2: Efficiency Calculation
