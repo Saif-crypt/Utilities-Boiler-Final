@@ -88,7 +88,7 @@ def main():
         # Additional filters
         st.markdown("**Display Options**")
         show_trendline = st.checkbox("Show Trendlines", value=True)
-        theme = st.selectbox("Chart Theme", ["plotly_black", "plotly_dark"])
+     
         
         st.markdown("---")
         
@@ -174,7 +174,7 @@ def main():
                     "Total_Fuel_Corrected": "Total Fuel Consumed (units)",
                     "Efficiency_X": "Efficiency (%)"
                 },
-                template=theme,
+               template="plotly_white",
                 color="Efficiency_X",
                 color_continuous_scale=px.colors.sequential.Viridis
             )
@@ -191,7 +191,7 @@ def main():
                     "Total_Fuel_Corrected": "Total Fuel Consumed (units)",
                     "Efficiency_X": "Efficiency (%)"
                 },
-                template=theme,
+                template="plotly_white",
                 color="Efficiency_X",
                 color_continuous_scale=px.colors.sequential.Viridis
             )
@@ -205,7 +205,7 @@ def main():
             x="Efficiency_X",
             nbins=10,
             title="Efficiency Distribution",
-            template=theme
+            template="plotly_white"
         )
         st.plotly_chart(fig, use_container_width=True)
         
@@ -229,7 +229,7 @@ def main():
             y="Efficiency_X",
             title="Efficiency Over Time",
             labels={"Efficiency_X": "Efficiency (%)"},
-            template=theme
+            template="plotly_white"
         )
         st.plotly_chart(fig, use_container_width=True)
     
@@ -241,7 +241,7 @@ def main():
             y="Total_Fuel_Corrected",
             title="Fuel Consumption Over Time",
             labels={"Total_Fuel_Corrected": "Fuel Consumed (units)"},
-            template=theme
+            template="plotly_white"
         )
         st.plotly_chart(fig, use_container_width=True)
     
