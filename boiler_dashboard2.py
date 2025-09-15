@@ -88,7 +88,7 @@ def main():
         # Additional filters
         st.markdown("**Display Options**")
         show_trendline = st.checkbox("Show Trendlines", value=True)
-        theme = st.selectbox("Chart Theme", ["plotly_white", "plotly_dark"])
+        theme = st.selectbox("Chart Theme", ["plotly_black", "plotly_dark"])
         
         st.markdown("---")
         
