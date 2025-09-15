@@ -28,6 +28,17 @@ st.markdown("""
         padding: 1.5rem;
         border-radius: 0.5rem;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+    .metric-card h3 {
+        margin: 0;
+        font-size: 1rem;
+        color: #555;
+    }
+    .metric-card h2 {
+        margin: 0.5rem 0 0 0;
+        font-size: 1.8rem;
+        color: #1E88E5;
     }
     .stButton>button {
         width: 100%;
@@ -88,7 +99,6 @@ def main():
         # Additional filters
         st.markdown("**Display Options**")
         show_trendline = st.checkbox("Show Trendlines", value=True)
-     
         
         st.markdown("---")
         
@@ -122,7 +132,7 @@ def main():
         st.markdown(f"""
         <div class="metric-card">
             <h3>Average Efficiency</h3>
-            <h2 style="color:#1E88E5;">{avg_efficiency:.1f}%</h2>
+            <h2>{avg_efficiency:.1f}%</h2>
         </div>
         """, unsafe_allow_html=True)
     
@@ -131,7 +141,7 @@ def main():
         st.markdown(f"""
         <div class="metric-card">
             <h3>Total Fuel Consumed</h3>
-            <h2 style="color:#1E88E5;">{total_fuel:.0f} units</h2>
+            <h2>{total_fuel:.0f} units</h2>
         </div>
         """, unsafe_allow_html=True)
     
@@ -140,7 +150,7 @@ def main():
         st.markdown(f"""
         <div class="metric-card">
             <h3>Average Temperature</h3>
-            <h2 style="color:#1E88E5;">{avg_temp:.1f}°C</h2>
+            <h2>{avg_temp:.1f}°C</h2>
         </div>
         """, unsafe_allow_html=True)
     
@@ -149,7 +159,7 @@ def main():
         st.markdown(f"""
         <div class="metric-card">
             <h3>Average Pressure</h3>
-            <h2 style="color:#1E88E5;">{avg_pressure:.1f} kPa</h2>
+            <h2>{avg_pressure:.1f} kPa</h2>
         </div>
         """, unsafe_allow_html=True)
     
@@ -174,7 +184,6 @@ def main():
                     "Total_Fuel_Corrected": "Total Fuel Consumed (units)",
                     "Efficiency_X": "Efficiency (%)"
                 },
-               template="plotly_white",
                 color="Efficiency_X",
                 color_continuous_scale=px.colors.sequential.Viridis
             )
@@ -191,7 +200,6 @@ def main():
                     "Total_Fuel_Corrected": "Total Fuel Consumed (units)",
                     "Efficiency_X": "Efficiency (%)"
                 },
-                template="plotly_white",
                 color="Efficiency_X",
                 color_continuous_scale=px.colors.sequential.Viridis
             )
@@ -204,8 +212,7 @@ def main():
             filtered_df, 
             x="Efficiency_X",
             nbins=10,
-            title="Efficiency Distribution",
-            template="plotly_white"
+            title="Efficiency Distribution"
         )
         st.plotly_chart(fig, use_container_width=True)
         
@@ -228,8 +235,7 @@ def main():
             x="Date", 
             y="Efficiency_X",
             title="Efficiency Over Time",
-            labels={"Efficiency_X": "Efficiency (%)"},
-            template="plotly_white"
+            labels={"Efficiency_X": "Efficiency (%)"}
         )
         st.plotly_chart(fig, use_container_width=True)
     
@@ -240,8 +246,7 @@ def main():
             x="Date", 
             y="Total_Fuel_Corrected",
             title="Fuel Consumption Over Time",
-            labels={"Total_Fuel_Corrected": "Fuel Consumed (units)"},
-            template="plotly_white"
+            labels={"Total_Fuel_Corrected": "Fuel Consumed (units)"}
         )
         st.plotly_chart(fig, use_container_width=True)
     
