@@ -45,12 +45,12 @@ st.markdown(
       overflow:hidden;
     }
     .kpi-topbox img {
-      width:100%;
-      height:100%;
+      /* use max-* so image keeps aspect and never overflows */
+      max-width:70%;
+      max-height:68px;
       object-fit:contain;
       display:block;
       margin:0 auto;
-      /* Prevent any padding or weird scaling */
       box-sizing:border-box;
       background:transparent;
     }
@@ -184,18 +184,13 @@ st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 # ---------- KPI cards (icons in top boxes + sparkline under values) ----------
 kpi_cols = st.columns(4, gap="large")
 
-icon_style = "width:100%;height:100%;object-fit:contain;"
-
 # KPI 1: Efficiency
 with kpi_cols[0]:
     st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
-    st.markdown("<div class='kpi-topbox'>", unsafe_allow_html=True)
+    # single markdown block for topbox + inline image (prevents Streamlit from breaking nesting)
     b = make_icon("flame", w=360, h=72)
-    st.markdown(
-        f"<img src='data:image/png;base64,{bytes_to_base64_str(b)}' alt='flame' style='{icon_style}' />",
-        unsafe_allow_html=True
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
+    b64 = bytes_to_base64_str(b)
+    st.markdown(f"<div class='kpi-topbox'><img src='data:image/png;base64,{b64}' alt='flame' /></div>", unsafe_allow_html=True)
 
     avg_eff = filtered_df["Efficiency_X"].mean()
     prev_avg = (
@@ -217,13 +212,9 @@ with kpi_cols[0]:
 # KPI 2: Total Fuel
 with kpi_cols[1]:
     st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
-    st.markdown("<div class='kpi-topbox'>", unsafe_allow_html=True)
     b = make_icon("fuel", w=360, h=72)
-    st.markdown(
-        f"<img src='data:image/png;base64,{bytes_to_base64_str(b)}' alt='fuel' style='{icon_style}' />",
-        unsafe_allow_html=True
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
+    b64 = bytes_to_base64_str(b)
+    st.markdown(f"<div class='kpi-topbox'><img src='data:image/png;base64,{b64}' alt='fuel' /></div>", unsafe_allow_html=True)
 
     total_fuel = filtered_df["Total_Fuel_Corrected"].sum()
     prev_fuel = (
@@ -245,13 +236,9 @@ with kpi_cols[1]:
 # KPI 3: Avg Temp
 with kpi_cols[2]:
     st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
-    st.markdown("<div class='kpi-topbox'>", unsafe_allow_html=True)
     b = make_icon("therm", w=360, h=72)
-    st.markdown(
-        f"<img src='data:image/png;base64,{bytes_to_base64_str(b)}' alt='therm' style='{icon_style}' />",
-        unsafe_allow_html=True
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
+    b64 = bytes_to_base64_str(b)
+    st.markdown(f"<div class='kpi-topbox'><img src='data:image/png;base64,{b64}' alt='therm' /></div>", unsafe_allow_html=True)
 
     avg_temp = filtered_df["Temperature"].mean()
     st.markdown("<div class='kpi-title'>Avg Temp</div>", unsafe_allow_html=True)
@@ -267,13 +254,9 @@ with kpi_cols[2]:
 # KPI 4: Avg Pressure
 with kpi_cols[3]:
     st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
-    st.markdown("<div class='kpi-topbox'>", unsafe_allow_html=True)
     b = make_icon("gauge", w=360, h=72)
-    st.markdown(
-        f"<img src='data:image/png;base64,{bytes_to_base64_str(b)}' alt='gauge' style='{icon_style}' />",
-        unsafe_allow_html=True
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
+    b64 = bytes_to_base64_str(b)
+    st.markdown(f"<div class='kpi-topbox'><img src='data:image/png;base64,{b64}' alt='gauge' /></div>", unsafe_allow_html=True)
 
     avg_pres = filtered_df["Pressure"].mean()
     st.markdown("<div class='kpi-title'>Avg Pressure</div>", unsafe_allow_html=True)
@@ -361,5 +344,3 @@ st.dataframe(filtered_df[["Efficiency_X", "Total_Fuel_Corrected", "Temperature",
 if st.sidebar.checkbox("Show raw data", value=False):
     st.subheader("Raw data")
     st.dataframe(filtered_df.reset_index(drop=True), use_container_width=True)
-
-
