@@ -37,6 +37,15 @@ st.markdown(
     .kpi .delta { font-size:12px; color:#9ee7a9; margin-top:4px; }
     .muted { color: var(--muted); font-size:13px; }
     .divider { height:1px; background: rgba(255,255,255,0.03); margin:18px 0; border-radius:2px; }
+    
+    /* Sparkline container styling */
+    .sparkline-container {
+        margin-top: 8px;
+        height: 32px;
+        width: 100%;
+        border-radius: 4px;
+        overflow: hidden;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -103,25 +112,29 @@ with right:
 
 st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
-# ---------- Helper: PNG sparkline via matplotlib (tight, transparent) ----------
-def sparkline_png(series, width_px=420, height_px=48, line_color="#8fd3ff"):
-    """
-    Return PNG bytes for a tiny sparkline for use with st.image.
-    Transparent background, no axes, tight margins.
-    """
-    y = np.array(series)
-    fig = plt.figure(figsize=(width_px / 100, height_px / 100), dpi=100)
-    ax = fig.add_axes([0, 0, 1, 1])
-    ax.plot(y, linewidth=1.6, color=line_color)
-    ax.set_axis_off()
-    # make tight, transparent
-    buf = BytesIO()
-    fig.savefig(buf, format="png", dpi=100, transparent=True, bbox_inches="tight", pad_inches=0)
-    plt.close(fig)
-    buf.seek(0)
-    return buf.getvalue()
+# ---------- Improved sparkline function ----------
+def create_sparkline_figure(series, line_color="#8fd3ff", height=30):
+    """Create a minimal sparkline using plotly"""
+    fig = px.line(
+        y=series.values,
+        line_shape="spline",
+        height=height
+    )
+    fig.update_traces(
+        line=dict(color=line_color, width=2),
+        showlegend=False
+    )
+    fig.update_layout(
+        margin=dict(l=0, r=0, t=0, b=0),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        xaxis=dict(visible=False),
+        yaxis=dict(visible=False),
+        hovermode=False
+    )
+    return fig
 
-# ---------- KPIs (use st.image for sparkline to avoid extra widget chrome) ----------
+# ---------- KPIs (using plotly for sparklines to avoid image issues) ----------
 kpi_cols = st.columns(4)
 
 with kpi_cols[0]:
@@ -132,12 +145,15 @@ with kpi_cols[0]:
         else avg_eff
     )
     delta = avg_eff - (prev_avg if not np.isnan(prev_avg) else avg_eff)
+    
     st.markdown("<div class='kpi'>", unsafe_allow_html=True)
     st.markdown("<h4>Average Efficiency</h4>", unsafe_allow_html=True)
     st.markdown(f"<div class='value'>{avg_eff:.1f}%</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='delta'>{delta:+.2f}% vs prev</div>", unsafe_allow_html=True)
-    img_bytes = sparkline_png(filtered_df["Efficiency_X"], width_px=360, height_px=48)
-    st.image(img_bytes, use_column_width=True)
+    
+    # Use plotly for sparkline instead of matplotlib image
+    sparkline_fig = create_sparkline_figure(filtered_df["Efficiency_X"], line_color="#8fd3ff")
+    st.plotly_chart(sparkline_fig, use_container_width=True, config={'displayModeBar': False})
     st.markdown("</div>", unsafe_allow_html=True)
 
 with kpi_cols[1]:
@@ -148,30 +164,38 @@ with kpi_cols[1]:
         else total_fuel
     )
     delta_fuel = total_fuel - prev_fuel
+    
     st.markdown("<div class='kpi'>", unsafe_allow_html=True)
     st.markdown("<h4>Total Fuel</h4>", unsafe_allow_html=True)
     st.markdown(f"<div class='value'>{total_fuel:.0f} units</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='delta'>{delta_fuel:+.0f} units vs prev</div>", unsafe_allow_html=True)
-    img_bytes = sparkline_png(filtered_df["Total_Fuel_Corrected"], width_px=360, height_px=48, line_color="#9fe2a6")
-    st.image(img_bytes, use_column_width=True)
+    
+    sparkline_fig = create_sparkline_figure(filtered_df["Total_Fuel_Corrected"], line_color="#9fe2a6")
+    st.plotly_chart(sparkline_fig, use_container_width=True, config={'displayModeBar': False})
     st.markdown("</div>", unsafe_allow_html=True)
 
 with kpi_cols[2]:
     avg_temp = filtered_df["Temperature"].mean()
+    
     st.markdown("<div class='kpi'>", unsafe_allow_html=True)
     st.markdown("<h4>Avg Temp</h4>", unsafe_allow_html=True)
     st.markdown(f"<div class='value'>{avg_temp:.1f}°C</div>", unsafe_allow_html=True)
-    img_bytes = sparkline_png(filtered_df["Temperature"], width_px=360, height_px=48, line_color="#ffd28f")
-    st.image(img_bytes, use_column_width=True)
+    st.markdown("<div class='delta'>&nbsp;</div>", unsafe_allow_html=True)  # Empty space for alignment
+    
+    sparkline_fig = create_sparkline_figure(filtered_df["Temperature"], line_color="#ffd28f")
+    st.plotly_chart(sparkline_fig, use_container_width=True, config={'displayModeBar': False})
     st.markdown("</div>", unsafe_allow_html=True)
 
 with kpi_cols[3]:
     avg_pres = filtered_df["Pressure"].mean()
+    
     st.markdown("<div class='kpi'>", unsafe_allow_html=True)
     st.markdown("<h4>Avg Pressure</h4>", unsafe_allow_html=True)
     st.markdown(f"<div class='value'>{avg_pres:.1f} kPa</div>", unsafe_allow_html=True)
-    img_bytes = sparkline_png(filtered_df["Pressure"], width_px=360, height_px=48, line_color="#9bd1ff")
-    st.image(img_bytes, use_column_width=True)
+    st.markdown("<div class='delta'>&nbsp;</div>", unsafe_allow_html=True)  # Empty space for alignment
+    
+    sparkline_fig = create_sparkline_figure(filtered_df["Pressure"], line_color="#9bd1ff")
+    st.plotly_chart(sparkline_fig, use_container_width=True, config={'displayModeBar': False})
     st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
