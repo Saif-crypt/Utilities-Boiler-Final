@@ -1,4 +1,4 @@
-# boiler_dashboard_final.py
+# boiler_dashboard_final_with_icons.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -7,7 +7,7 @@ from datetime import datetime
 from io import BytesIO
 import matplotlib.pyplot as plt
 
-# Ensure non-interactive backend (safe on servers)
+# Use non-interactive backend
 plt.switch_backend("Agg")
 
 # Page config
@@ -35,7 +35,19 @@ st.markdown(
       background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
       border-radius:12px; padding:14px; box-shadow:0 6px 18px rgba(2,6,23,0.5);
       border:1px solid rgba(255,255,255,0.03);
-      min-height:120px;
+      min-height:140px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+    }
+    .kpi-topbox {
+      height:72px;
+      border-radius:10px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      margin-bottom:8px;
     }
     .kpi-title { margin:0; color:#cbd5e1; font-size:14px; }
     .kpi-value { font-size:20px; font-weight:700; color:white; margin-top:6px; }
@@ -44,7 +56,6 @@ st.markdown(
 
     .divider { height:1px; background: rgba(255,255,255,0.03); margin:18px 0; border-radius:2px; }
 
-    /* make dataframe look nice */
     .stDataFrame table { border-radius: 8px; overflow: hidden; }
     </style>
     """,
@@ -69,6 +80,59 @@ def generate_sample_data():
         "Steam_Output": base_fuel * 2.5 + np.random.normal(0, 50, len(dates)),
     }
     return pd.DataFrame(data)
+
+# ---------- Icon generator (matplotlib) ----------
+def make_icon(kind, w=360, h=72, dpi=100):
+    """
+    Create a small PNG bytes icon for kinds: 'flame', 'fuel', 'therm', 'gauge'
+    Returns PNG bytes.
+    """
+    fig = plt.figure(figsize=(w / dpi, h / dpi), dpi=dpi)
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 100)
+    ax.axis("off")
+
+    if kind == "flame":
+        # flame: triangular shapes
+        ax.fill_between([45,50,55], [30,70,30], color="#ff8a65", alpha=1)
+        ax.fill_between([48,50,52], [40,80,40], color="#ffd180", alpha=0.9)
+        ax.fill_between([49.5,50,50.5], [55,88,55], color="#fff3e0", alpha=0.9)
+    elif kind == "fuel":
+        # fuel cylinder + droplet
+        # cylinder body
+        ax.add_patch(plt.Rectangle((20,30), 60, 35, color="#9fe2a6", ec="#7fc48a", lw=1.2))
+        # cap ellipse
+        ax.add_patch(plt.Circle((50, 68), 18, color="#7fc48a", alpha=0.9))
+        # droplet icon
+        ax.plot([50,46,50,54,50], [62,48,56,48,62], color="#065f46", lw=1.5)
+    elif kind == "therm":
+        # thermometer: bulb + tube
+        ax.add_patch(plt.Circle((50,24), 18, color="#ffd28f", ec="#ffb347"))
+        ax.add_patch(plt.Rectangle((46,30), 8, 30, color="#ffd28f", ec="#ffb347"))
+        # mercury level
+        ax.add_patch(plt.Rectangle((47.2,34), 5.6, 18, color="#ff8a65"))
+    elif kind == "gauge":
+        # gauge circle with needle
+        ax.add_patch(plt.Circle((50,45), 28, color="#8fd3ff", ec="#6fb7ff"))
+        # ticks
+        for ang in np.linspace(-0.6, 0.6, 7):
+            x0 = 50 + 24 * np.cos(ang)
+            y0 = 45 + 24 * np.sin(ang)
+            x1 = 50 + 28 * np.cos(ang)
+            y1 = 45 + 28 * np.sin(ang)
+            ax.plot([x0, x1], [y0, y1], color="#092241", lw=1)
+        # needle
+        ax.plot([50, 50 + 20 * np.cos(0.1)], [45, 45 + 20 * np.sin(0.1)], color="#2b2b2b", lw=2.5)
+    else:
+        # empty placeholder
+        ax.add_patch(plt.Rectangle((15,20), 70, 40, color="#222", ec="#333"))
+
+    buf = BytesIO()
+    fig.savefig(buf, format="png", dpi=dpi, transparent=True, bbox_inches="tight", pad_inches=0)
+    plt.close(fig)
+    buf.seek(0)
+    return buf.getvalue()
 
 # ---------- Sidebar controls ----------
 with st.sidebar:
@@ -112,85 +176,68 @@ with right:
 
 st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
-# ---------- Helper: PNG sparkline via matplotlib (tight, transparent) ----------
-def sparkline_png(series, width_px=360, height_px=48, line_color="#8fd3ff"):
-    """
-    Return PNG bytes for a tiny sparkline for use with st.image.
-    Transparent background, no axes, tight margins.
-    """
-    y = np.array(series)
-    fig = plt.figure(figsize=(width_px / 100, height_px / 100), dpi=100)
-    ax = fig.add_axes([0, 0, 1, 1])
-    ax.plot(y, linewidth=1.6, color=line_color)
-    ax.set_axis_off()
-    buf = BytesIO()
-    fig.savefig(buf, format="png", dpi=100, transparent=True, bbox_inches="tight", pad_inches=0)
-    plt.close(fig)
-    buf.seek(0)
-    return buf.getvalue()
-
-# ---------- KPIs: single tidy card per column (NO empty boxes) ----------
+# ---------- KPIs with icons in topboxes ----------
 kpi_cols = st.columns(4, gap="large")
 
 # Average Efficiency card
 with kpi_cols[0]:
-    with st.container():
-        st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
-        avg_eff = filtered_df["Efficiency_X"].mean()
-        prev_avg = (
-            df.loc[df["Date"] < filtered_df["Date"].min(), "Efficiency_X"].mean()
-            if not df.loc[df["Date"] < filtered_df["Date"].min()].empty
-            else avg_eff
-        )
-        delta = avg_eff - (prev_avg if not np.isnan(prev_avg) else avg_eff)
-        st.markdown("<div class='kpi-title'>Average Efficiency</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='kpi-value'>{avg_eff:.1f}%</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='kpi-delta'>{delta:+.2f}% vs prev</div>", unsafe_allow_html=True)
-        img_bytes = sparkline_png(filtered_df["Efficiency_X"], width_px=360, height_px=48, line_color="#8fd3ff")
-        st.image(img_bytes, use_column_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
+    st.markdown("<div class='kpi-topbox'>", unsafe_allow_html=True)
+    st.image(make_icon("flame", w=360, h=72), use_column_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+    avg_eff = filtered_df["Efficiency_X"].mean()
+    prev_avg = (
+        df.loc[df["Date"] < filtered_df["Date"].min(), "Efficiency_X"].mean()
+        if not df.loc[df["Date"] < filtered_df["Date"].min()].empty
+        else avg_eff
+    )
+    delta = avg_eff - (prev_avg if not np.isnan(prev_avg) else avg_eff)
+    st.markdown("<div class='kpi-title'>Average Efficiency</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='kpi-value'>{avg_eff:.1f}%</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='kpi-delta'>{delta:+.2f}% vs prev</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # Total Fuel card
 with kpi_cols[1]:
-    with st.container():
-        st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
-        total_fuel = filtered_df["Total_Fuel_Corrected"].sum()
-        prev_fuel = (
-            df.loc[df["Date"] < filtered_df["Date"].min(), "Total_Fuel_Corrected"].sum()
-            if not df.loc[df["Date"] < filtered_df["Date"].min()].empty
-            else total_fuel
-        )
-        delta_fuel = total_fuel - prev_fuel
-        st.markdown("<div class='kpi-title'>Total Fuel</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='kpi-value'>{total_fuel:.0f} units</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='kpi-delta'>{delta_fuel:+.0f} units vs prev</div>", unsafe_allow_html=True)
-        img_bytes = sparkline_png(filtered_df["Total_Fuel_Corrected"], width_px=360, height_px=48, line_color="#9fe2a6")
-        st.image(img_bytes, use_column_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
+    st.markdown("<div class='kpi-topbox'>", unsafe_allow_html=True)
+    st.image(make_icon("fuel", w=360, h=72), use_column_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+    total_fuel = filtered_df["Total_Fuel_Corrected"].sum()
+    prev_fuel = (
+        df.loc[df["Date"] < filtered_df["Date"].min(), "Total_Fuel_Corrected"].sum()
+        if not df.loc[df["Date"] < filtered_df["Date"].min()].empty
+        else total_fuel
+    )
+    delta_fuel = total_fuel - prev_fuel
+    st.markdown("<div class='kpi-title'>Total Fuel</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='kpi-value'>{total_fuel:.0f} units</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='kpi-delta'>{delta_fuel:+.0f} units vs prev</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # Avg Temp card
 with kpi_cols[2]:
-    with st.container():
-        st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
-        avg_temp = filtered_df["Temperature"].mean()
-        st.markdown("<div class='kpi-title'>Avg Temp</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='kpi-value'>{avg_temp:.1f}°C</div>", unsafe_allow_html=True)
-        st.markdown("<div class='kpi-sublabel'>Operational average</div>", unsafe_allow_html=True)
-        img_bytes = sparkline_png(filtered_df["Temperature"], width_px=360, height_px=48, line_color="#ffd28f")
-        st.image(img_bytes, use_column_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
+    st.markdown("<div class='kpi-topbox'>", unsafe_allow_html=True)
+    st.image(make_icon("therm", w=360, h=72), use_column_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+    avg_temp = filtered_df["Temperature"].mean()
+    st.markdown("<div class='kpi-title'>Avg Temp</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='kpi-value'>{avg_temp:.1f}°C</div>", unsafe_allow_html=True)
+    st.markdown("<div class='kpi-sublabel'>Operational average</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # Avg Pressure card
 with kpi_cols[3]:
-    with st.container():
-        st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
-        avg_pres = filtered_df["Pressure"].mean()
-        st.markdown("<div class='kpi-title'>Avg Pressure</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='kpi-value'>{avg_pres:.1f} kPa</div>", unsafe_allow_html=True)
-        st.markdown("<div class='kpi-sublabel'>Mean operating pressure</div>", unsafe_allow_html=True)
-        img_bytes = sparkline_png(filtered_df["Pressure"], width_px=360, height_px=48, line_color="#9bd1ff")
-        st.image(img_bytes, use_column_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
+    st.markdown("<div class='kpi-topbox'>", unsafe_allow_html=True)
+    st.image(make_icon("gauge", w=360, h=72), use_column_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+    avg_pres = filtered_df["Pressure"].mean()
+    st.markdown("<div class='kpi-title'>Avg Pressure</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='kpi-value'>{avg_pres:.1f} kPa</div>", unsafe_allow_html=True)
+    st.markdown("<div class='kpi-sublabel'>Mean operating pressure</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
@@ -244,7 +291,7 @@ fig = px.imshow(corr_matrix, text_auto=True, aspect="auto", title="Correlation b
 fig.update_layout(height=350)
 st.plotly_chart(fig, use_container_width=True)
 
-# ---------- Export buttons (SAFE: placed AFTER filtered_df exists) ----------
+# ---------- Export buttons ----------
 st.markdown("---")
 st.sidebar.markdown("## Export")
 
@@ -264,7 +311,7 @@ st.sidebar.download_button(
     mime="text/csv",
 )
 
-# Excel (.xlsx) — safe try/except: only attempt if engine available
+# Excel (.xlsx)
 try:
     buffer = BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
@@ -280,12 +327,9 @@ try:
 except Exception:
     st.sidebar.info("Excel export requires 'openpyxl' installed. Use pip install openpyxl if needed.")
 
-# ---------- KEY STATISTICS (moved to bottom, full-width & expanded) ----------
+# ---------- Key Statistics (bottom) ----------
 st.markdown("---")
 st.subheader("Key Statistics (Full summary)")
-st.markdown(
-    "This summary expands to fill the content area. Use it to quickly copy / check central moments."
-)
 st.dataframe(filtered_df[["Efficiency_X", "Total_Fuel_Corrected", "Temperature", "Pressure"]].describe(), use_container_width=True)
 
 # ---------- Raw data ----------
