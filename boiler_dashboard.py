@@ -1,4 +1,4 @@
-# boiler_dashboard_final_with_icons.py
+# boiler_dashboard_icons_fixed.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -6,6 +6,7 @@ import numpy as np
 from datetime import datetime
 from io import BytesIO
 import matplotlib.pyplot as plt
+import base64
 
 # Use non-interactive backend
 plt.switch_backend("Agg")
@@ -48,7 +49,17 @@ st.markdown(
       align-items:center;
       justify-content:center;
       margin-bottom:8px;
+      overflow:hidden;
     }
+    /* Force embedded img within topbox to fit */
+    .kpi-topbox img {
+      max-width:70%;
+      max-height:68px;
+      object-fit:contain;
+      display:block;
+      margin:0 auto;
+    }
+
     .kpi-title { margin:0; color:#cbd5e1; font-size:14px; }
     .kpi-value { font-size:20px; font-weight:700; color:white; margin-top:6px; }
     .kpi-delta { font-size:12px; color:#9ee7a9; margin-top:4px; }
@@ -94,38 +105,27 @@ def make_icon(kind, w=360, h=72, dpi=100):
     ax.axis("off")
 
     if kind == "flame":
-        # flame: triangular shapes
         ax.fill_between([45,50,55], [30,70,30], color="#ff8a65", alpha=1)
         ax.fill_between([48,50,52], [40,80,40], color="#ffd180", alpha=0.9)
         ax.fill_between([49.5,50,50.5], [55,88,55], color="#fff3e0", alpha=0.9)
     elif kind == "fuel":
-        # fuel cylinder + droplet
-        # cylinder body
         ax.add_patch(plt.Rectangle((20,30), 60, 35, color="#9fe2a6", ec="#7fc48a", lw=1.2))
-        # cap ellipse
         ax.add_patch(plt.Circle((50, 68), 18, color="#7fc48a", alpha=0.9))
-        # droplet icon
         ax.plot([50,46,50,54,50], [62,48,56,48,62], color="#065f46", lw=1.5)
     elif kind == "therm":
-        # thermometer: bulb + tube
         ax.add_patch(plt.Circle((50,24), 18, color="#ffd28f", ec="#ffb347"))
         ax.add_patch(plt.Rectangle((46,30), 8, 30, color="#ffd28f", ec="#ffb347"))
-        # mercury level
         ax.add_patch(plt.Rectangle((47.2,34), 5.6, 18, color="#ff8a65"))
     elif kind == "gauge":
-        # gauge circle with needle
         ax.add_patch(plt.Circle((50,45), 28, color="#8fd3ff", ec="#6fb7ff"))
-        # ticks
         for ang in np.linspace(-0.6, 0.6, 7):
             x0 = 50 + 24 * np.cos(ang)
             y0 = 45 + 24 * np.sin(ang)
             x1 = 50 + 28 * np.cos(ang)
             y1 = 45 + 28 * np.sin(ang)
             ax.plot([x0, x1], [y0, y1], color="#092241", lw=1)
-        # needle
         ax.plot([50, 50 + 20 * np.cos(0.1)], [45, 45 + 20 * np.sin(0.1)], color="#2b2b2b", lw=2.5)
     else:
-        # empty placeholder
         ax.add_patch(plt.Rectangle((15,20), 70, 40, color="#222", ec="#333"))
 
     buf = BytesIO()
@@ -133,6 +133,10 @@ def make_icon(kind, w=360, h=72, dpi=100):
     plt.close(fig)
     buf.seek(0)
     return buf.getvalue()
+
+# helper: convert bytes to base64 string for inline embedding
+def bytes_to_base64_str(b):
+    return base64.b64encode(b).decode("utf-8")
 
 # ---------- Sidebar controls ----------
 with st.sidebar:
@@ -176,14 +180,16 @@ with right:
 
 st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
-# ---------- KPIs with icons in topboxes ----------
+# ---------- KPIs with icons embedded inside topbox (base64 inline) ----------
 kpi_cols = st.columns(4, gap="large")
 
 # Average Efficiency card
 with kpi_cols[0]:
     st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
     st.markdown("<div class='kpi-topbox'>", unsafe_allow_html=True)
-    st.image(make_icon("flame", w=360, h=72), use_column_width=True)
+    b = make_icon("flame", w=360, h=72)
+    b64 = bytes_to_base64_str(b)
+    st.markdown(f"<img src='data:image/png;base64,{b64}' alt='flame' />", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
     avg_eff = filtered_df["Efficiency_X"].mean()
     prev_avg = (
@@ -201,7 +207,9 @@ with kpi_cols[0]:
 with kpi_cols[1]:
     st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
     st.markdown("<div class='kpi-topbox'>", unsafe_allow_html=True)
-    st.image(make_icon("fuel", w=360, h=72), use_column_width=True)
+    b = make_icon("fuel", w=360, h=72)
+    b64 = bytes_to_base64_str(b)
+    st.markdown(f"<img src='data:image/png;base64,{b64}' alt='fuel' />", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
     total_fuel = filtered_df["Total_Fuel_Corrected"].sum()
     prev_fuel = (
@@ -219,7 +227,9 @@ with kpi_cols[1]:
 with kpi_cols[2]:
     st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
     st.markdown("<div class='kpi-topbox'>", unsafe_allow_html=True)
-    st.image(make_icon("therm", w=360, h=72), use_column_width=True)
+    b = make_icon("therm", w=360, h=72)
+    b64 = bytes_to_base64_str(b)
+    st.markdown(f"<img src='data:image/png;base64,{b64}' alt='therm' />", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
     avg_temp = filtered_df["Temperature"].mean()
     st.markdown("<div class='kpi-title'>Avg Temp</div>", unsafe_allow_html=True)
@@ -231,7 +241,9 @@ with kpi_cols[2]:
 with kpi_cols[3]:
     st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
     st.markdown("<div class='kpi-topbox'>", unsafe_allow_html=True)
-    st.image(make_icon("gauge", w=360, h=72), use_column_width=True)
+    b = make_icon("gauge", w=360, h=72)
+    b64 = bytes_to_base64_str(b)
+    st.markdown(f"<img src='data:image/png;base64,{b64}' alt='gauge' />", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
     avg_pres = filtered_df["Pressure"].mean()
     st.markdown("<div class='kpi-title'>Avg Pressure</div>", unsafe_allow_html=True)
