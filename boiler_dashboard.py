@@ -1,4 +1,4 @@
-# boiler_dashboard_fixed.py
+# boiler_dashboard_fixed_sparkline.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -99,11 +99,22 @@ with right:
 
 st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
-# ---------- Helper: sparkline ----------
+# ---------- Helper: sparkline (CORRECT PLACEMENT: outside KPI blocks) ----------
 def sparkline(series):
-    fig = px.line(series.reset_index(), x="index", y=series.name, height=50)
-    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), xaxis=dict(visible=False), yaxis=dict(visible=False))
-    fig.update_traces(line=dict(width=1.5))
+    """
+    Create a very compact, transparent sparkline figure for KPI cards.
+    This must be defined outside the KPI 'with' blocks.
+    """
+    fig = px.line(series.reset_index(), x="index", y=series.name, height=48)
+    fig.update_traces(line=dict(width=1.8), marker=dict(size=0))
+    fig.update_layout(
+        margin=dict(l=0, r=0, t=0, b=0),
+        xaxis=dict(visible=False, showgrid=False, zeroline=False),
+        yaxis=dict(visible=False, showgrid=False, zeroline=False),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        height=48,
+    )
     return fig
 
 # ---------- KPIs ----------
@@ -111,7 +122,11 @@ kpi_cols = st.columns(4)
 
 with kpi_cols[0]:
     avg_eff = filtered_df["Efficiency_X"].mean()
-    prev_avg = df.loc[df["Date"] < filtered_df["Date"].min(), "Efficiency_X"].mean() if not df.loc[df["Date"] < filtered_df["Date"].min()].empty else avg_eff
+    prev_avg = (
+        df.loc[df["Date"] < filtered_df["Date"].min(), "Efficiency_X"].mean()
+        if not df.loc[df["Date"] < filtered_df["Date"].min()].empty
+        else avg_eff
+    )
     delta = avg_eff - (prev_avg if not np.isnan(prev_avg) else avg_eff)
     st.markdown("<div class='kpi'>", unsafe_allow_html=True)
     st.markdown("<h4>Average Efficiency</h4>", unsafe_allow_html=True)
@@ -122,7 +137,11 @@ with kpi_cols[0]:
 
 with kpi_cols[1]:
     total_fuel = filtered_df["Total_Fuel_Corrected"].sum()
-    prev_fuel = df.loc[df["Date"] < filtered_df["Date"].min(), "Total_Fuel_Corrected"].sum() if not df.loc[df["Date"] < filtered_df["Date"].min()].empty else total_fuel
+    prev_fuel = (
+        df.loc[df["Date"] < filtered_df["Date"].min(), "Total_Fuel_Corrected"].sum()
+        if not df.loc[df["Date"] < filtered_df["Date"].min()].empty
+        else total_fuel
+    )
     delta_fuel = total_fuel - prev_fuel
     st.markdown("<div class='kpi'>", unsafe_allow_html=True)
     st.markdown("<h4>Total Fuel</h4>", unsafe_allow_html=True)
