@@ -1,4 +1,4 @@
-# boiler_dashboard_icons_and_sparklines.py
+# boiler_dashboard_icons_and_sparklines_fixed.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -8,7 +8,6 @@ from io import BytesIO
 import matplotlib.pyplot as plt
 import base64
 
-# non-interactive backend for servers
 plt.switch_backend("Agg")
 
 st.set_page_config(page_title="Boiler Performance Dashboard", page_icon="🔥", layout="wide")
@@ -18,18 +17,14 @@ st.markdown(
     """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Roboto+Mono:wght@400;700&display=swap');
-
     :root {
       --accent: #1E88E5;
       --muted: #9aa6b2;
     }
-
     .reportview-container .main { font-family: 'Inter', sans-serif; color: #e6eef6; }
     .header { display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom:12px; }
     .title { font-size: 28px; font-weight:700; color:var(--accent); }
     .subtitle { font-family: 'Roboto Mono', monospace; color:var(--muted); font-size:12px; }
-
-    /* KPI card */
     .kpi-card {
       background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
       border-radius:12px; padding:14px; box-shadow:0 6px 18px rgba(2,6,23,0.5);
@@ -50,24 +45,23 @@ st.markdown(
       overflow:hidden;
     }
     .kpi-topbox img {
-      max-width:70%;
-      max-height:68px;
+      width:100%;
+      height:100%;
       object-fit:contain;
       display:block;
       margin:0 auto;
+      /* Prevent any padding or weird scaling */
+      box-sizing:border-box;
+      background:transparent;
     }
-
     .kpi-title { margin:0; color:#cbd5e1; font-size:14px; }
     .kpi-value { font-size:20px; font-weight:700; color:white; margin-top:6px; }
     .kpi-delta { font-size:12px; color:#9ee7a9; margin-top:6px; }
-
     .kpi-spark {
       margin-top:8px;
       height:48px;
     }
-
     .divider { height:1px; background: rgba(255,255,255,0.03); margin:18px 0; border-radius:2px; }
-
     .stDataFrame table { border-radius: 8px; overflow: hidden; }
     </style>
     """,
@@ -190,12 +184,17 @@ st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 # ---------- KPI cards (icons in top boxes + sparkline under values) ----------
 kpi_cols = st.columns(4, gap="large")
 
+icon_style = "width:100%;height:100%;object-fit:contain;"
+
 # KPI 1: Efficiency
 with kpi_cols[0]:
     st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
     st.markdown("<div class='kpi-topbox'>", unsafe_allow_html=True)
     b = make_icon("flame", w=360, h=72)
-    st.markdown(f"<img src='data:image/png;base64,{bytes_to_base64_str(b)}' alt='flame' />", unsafe_allow_html=True)
+    st.markdown(
+        f"<img src='data:image/png;base64,{bytes_to_base64_str(b)}' alt='flame' style='{icon_style}' />",
+        unsafe_allow_html=True
+    )
     st.markdown("</div>", unsafe_allow_html=True)
 
     avg_eff = filtered_df["Efficiency_X"].mean()
@@ -209,7 +208,6 @@ with kpi_cols[0]:
     st.markdown(f"<div class='kpi-value'>{avg_eff:.1f}%</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='kpi-delta'>{delta:+.2f}% vs prev</div>", unsafe_allow_html=True)
 
-    # sparkline PNG
     sp = sparkline_png(filtered_df["Efficiency_X"], width_px=360, height_px=48, line_color="#8fd3ff")
     st.markdown("<div class='kpi-spark'>", unsafe_allow_html=True)
     st.image(sp, use_column_width=True)
@@ -221,7 +219,10 @@ with kpi_cols[1]:
     st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
     st.markdown("<div class='kpi-topbox'>", unsafe_allow_html=True)
     b = make_icon("fuel", w=360, h=72)
-    st.markdown(f"<img src='data:image/png;base64,{bytes_to_base64_str(b)}' alt='fuel' />", unsafe_allow_html=True)
+    st.markdown(
+        f"<img src='data:image/png;base64,{bytes_to_base64_str(b)}' alt='fuel' style='{icon_style}' />",
+        unsafe_allow_html=True
+    )
     st.markdown("</div>", unsafe_allow_html=True)
 
     total_fuel = filtered_df["Total_Fuel_Corrected"].sum()
@@ -246,7 +247,10 @@ with kpi_cols[2]:
     st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
     st.markdown("<div class='kpi-topbox'>", unsafe_allow_html=True)
     b = make_icon("therm", w=360, h=72)
-    st.markdown(f"<img src='data:image/png;base64,{bytes_to_base64_str(b)}' alt='therm' />", unsafe_allow_html=True)
+    st.markdown(
+        f"<img src='data:image/png;base64,{bytes_to_base64_str(b)}' alt='therm' style='{icon_style}' />",
+        unsafe_allow_html=True
+    )
     st.markdown("</div>", unsafe_allow_html=True)
 
     avg_temp = filtered_df["Temperature"].mean()
@@ -265,7 +269,10 @@ with kpi_cols[3]:
     st.markdown("<div class='kpi-card'>", unsafe_allow_html=True)
     st.markdown("<div class='kpi-topbox'>", unsafe_allow_html=True)
     b = make_icon("gauge", w=360, h=72)
-    st.markdown(f"<img src='data:image/png;base64,{bytes_to_base64_str(b)}' alt='gauge' />", unsafe_allow_html=True)
+    st.markdown(
+        f"<img src='data:image/png;base64,{bytes_to_base64_str(b)}' alt='gauge' style='{icon_style}' />",
+        unsafe_allow_html=True
+    )
     st.markdown("</div>", unsafe_allow_html=True)
 
     avg_pres = filtered_df["Pressure"].mean()
@@ -354,4 +361,5 @@ st.dataframe(filtered_df[["Efficiency_X", "Total_Fuel_Corrected", "Temperature",
 if st.sidebar.checkbox("Show raw data", value=False):
     st.subheader("Raw data")
     st.dataframe(filtered_df.reset_index(drop=True), use_container_width=True)
+
 
