@@ -1,10 +1,14 @@
-# boiler_dashboard_fixed_sparkline.py
+# boiler_dashboard_no_pills.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import numpy as np
 from datetime import datetime
 from io import BytesIO
+import matplotlib.pyplot as plt
+
+# Ensure non-interactive backend (safe on servers)
+plt.switch_backend("Agg")
 
 # Page config
 st.set_page_config(page_title="Boiler Performance Dashboard", page_icon="🔥", layout="wide")
@@ -20,19 +24,19 @@ st.markdown(
       --muted: #9aa6b2;
     }
 
-    .reportview-container .main { font-family: 'Inter', sans-serif; }
+    .reportview-container .main { font-family: 'Inter', sans-serif; color: #e6eef6; }
     .header { display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom:12px; }
     .title { font-size: 28px; font-weight:700; color:var(--accent); }
     .subtitle { font-family: 'Roboto Mono', monospace; color:var(--muted); font-size:12px; }
 
     .kpi { background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
            border-radius:12px; padding:14px; box-shadow:0 6px 18px rgba(2,6,23,0.5);
-           border:1px solid rgba(255,255,255,0.03); }
-    .kpi h4 { margin:0; color:#cbd5e1; font-size:12px; }
+           border:1px solid rgba(255,255,255,0.03); min-height:92px; }
+    .kpi h4 { margin:0; color:#cbd5e1; font-size:14px; }
     .kpi .value { font-size:20px; font-weight:700; color:white; margin-top:6px; }
     .kpi .delta { font-size:12px; color:#9ee7a9; margin-top:4px; }
     .muted { color: var(--muted); font-size:13px; }
-    .divider { height:1px; background: rgba(255,255,255,0.03); margin:12px 0; border-radius:2px; }
+    .divider { height:1px; background: rgba(255,255,255,0.03); margin:18px 0; border-radius:2px; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -99,25 +103,25 @@ with right:
 
 st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
-# ---------- Helper: sparkline (CORRECT PLACEMENT: outside KPI blocks) ----------
-def sparkline(series):
+# ---------- Helper: PNG sparkline via matplotlib (tight, transparent) ----------
+def sparkline_png(series, width_px=420, height_px=48, line_color="#8fd3ff"):
     """
-    Create a very compact, transparent sparkline figure for KPI cards.
-    This must be defined outside the KPI 'with' blocks.
+    Return PNG bytes for a tiny sparkline for use with st.image.
+    Transparent background, no axes, tight margins.
     """
-    fig = px.line(series.reset_index(), x="index", y=series.name, height=48)
-    fig.update_traces(line=dict(width=1.8), marker=dict(size=0))
-    fig.update_layout(
-        margin=dict(l=0, r=0, t=0, b=0),
-        xaxis=dict(visible=False, showgrid=False, zeroline=False),
-        yaxis=dict(visible=False, showgrid=False, zeroline=False),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        height=48,
-    )
-    return fig
+    y = np.array(series)
+    fig = plt.figure(figsize=(width_px / 100, height_px / 100), dpi=100)
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.plot(y, linewidth=1.6, color=line_color)
+    ax.set_axis_off()
+    # make tight, transparent
+    buf = BytesIO()
+    fig.savefig(buf, format="png", dpi=100, transparent=True, bbox_inches="tight", pad_inches=0)
+    plt.close(fig)
+    buf.seek(0)
+    return buf.getvalue()
 
-# ---------- KPIs ----------
+# ---------- KPIs (use st.image for sparkline to avoid extra widget chrome) ----------
 kpi_cols = st.columns(4)
 
 with kpi_cols[0]:
@@ -132,7 +136,8 @@ with kpi_cols[0]:
     st.markdown("<h4>Average Efficiency</h4>", unsafe_allow_html=True)
     st.markdown(f"<div class='value'>{avg_eff:.1f}%</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='delta'>{delta:+.2f}% vs prev</div>", unsafe_allow_html=True)
-    st.plotly_chart(sparkline(filtered_df["Efficiency_X"]), use_container_width=True, config={"displayModeBar": False})
+    img_bytes = sparkline_png(filtered_df["Efficiency_X"], width_px=360, height_px=48)
+    st.image(img_bytes, use_column_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 with kpi_cols[1]:
@@ -147,7 +152,8 @@ with kpi_cols[1]:
     st.markdown("<h4>Total Fuel</h4>", unsafe_allow_html=True)
     st.markdown(f"<div class='value'>{total_fuel:.0f} units</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='delta'>{delta_fuel:+.0f} units vs prev</div>", unsafe_allow_html=True)
-    st.plotly_chart(sparkline(filtered_df["Total_Fuel_Corrected"]), use_container_width=True, config={"displayModeBar": False})
+    img_bytes = sparkline_png(filtered_df["Total_Fuel_Corrected"], width_px=360, height_px=48, line_color="#9fe2a6")
+    st.image(img_bytes, use_column_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 with kpi_cols[2]:
@@ -155,7 +161,8 @@ with kpi_cols[2]:
     st.markdown("<div class='kpi'>", unsafe_allow_html=True)
     st.markdown("<h4>Avg Temp</h4>", unsafe_allow_html=True)
     st.markdown(f"<div class='value'>{avg_temp:.1f}°C</div>", unsafe_allow_html=True)
-    st.plotly_chart(sparkline(filtered_df["Temperature"]), use_container_width=True, config={"displayModeBar": False})
+    img_bytes = sparkline_png(filtered_df["Temperature"], width_px=360, height_px=48, line_color="#ffd28f")
+    st.image(img_bytes, use_column_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 with kpi_cols[3]:
@@ -163,7 +170,8 @@ with kpi_cols[3]:
     st.markdown("<div class='kpi'>", unsafe_allow_html=True)
     st.markdown("<h4>Avg Pressure</h4>", unsafe_allow_html=True)
     st.markdown(f"<div class='value'>{avg_pres:.1f} kPa</div>", unsafe_allow_html=True)
-    st.plotly_chart(sparkline(filtered_df["Pressure"]), use_container_width=True, config={"displayModeBar": False})
+    img_bytes = sparkline_png(filtered_df["Pressure"], width_px=360, height_px=48, line_color="#9bd1ff")
+    st.image(img_bytes, use_column_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
@@ -224,7 +232,6 @@ st.plotly_chart(fig, use_container_width=True)
 st.markdown("---")
 st.sidebar.markdown("## Export")
 
-# CSV (string)
 csv_str = filtered_df.to_csv(index=False)
 st.sidebar.download_button(
     label="📥 Download filtered CSV",
@@ -233,7 +240,6 @@ st.sidebar.download_button(
     mime="text/csv",
 )
 
-# CSV (bytes utf-8)
 csv_bytes = csv_str.encode("utf-8")
 st.sidebar.download_button(
     label="📥 Download CSV (utf-8)",
