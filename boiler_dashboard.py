@@ -103,7 +103,15 @@ with st.sidebar:
     if st.button("🔄 Refresh data"):
         st.experimental_rerun()
     st.markdown("### Export")
-    st.download_button("Download filtered CSV", data=None, file_name="boiler_filtered.csv", mime="text/csv")
+    # -- CSV download (string) --
+csv_str = filtered_df.to_csv(index=False)
+st.download_button(
+    label="Download filtered CSV",
+    data=csv_str,
+    file_name="boiler_filtered.csv",
+    mime="text/csv"
+)
+
 
 # ---------- Load and filter ----------
 df = generate_sample_data()
