@@ -1,4 +1,6 @@
 # boiler_dashboard_no_pills.py
+# Screenshot (for reference): /mnt/data/a3975c91-e3c9-4fb0-a984-4910e9bfad62.png
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -66,6 +68,32 @@ st.markdown(
     .js-plotly-plot .plotly .main-svg {
         border-radius: 4px;
     }
+
+    /* === ADDED RULES TO FORCE SPARKLINES INSIDE KPI BOXES ===
+       This is the only functional change: it removes the extra
+       padding/margins Streamlit adds and clamps the chart height so
+       the tiny sparklines remain fully inside the `.kpi` card.
+    */
+    .kpi .element-container {
+        padding-top: 0px !important;
+        padding-bottom: 0px !important;
+        margin-top: -8px !important;
+        margin-bottom: -10px !important;
+    }
+
+    .kpi .stPlotlyChart {
+        height: 35px !important;
+        overflow: hidden !important;
+    }
+
+    /* In case Streamlit wraps charts in other divs, extra safety */
+    .kpi iframe, .kpi div[data-testid="stPlotlyChart"] {
+        height: 35px !important;
+        min-height: 35px !important;
+        max-height: 35px !important;
+        overflow: hidden !important;
+    }
+
     </style>
     """,
     unsafe_allow_html=True,
