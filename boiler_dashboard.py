@@ -91,7 +91,7 @@ with st.sidebar:
         st.selectbox("Chart palette", ["Viridis", "Turbo", "Blues"], index=0)
     st.markdown("---")
     if st.button("🔄 Refresh data"):
-        st.experimental_rerun()
+        st.rerun()
 
 # ---------- Load and filter ----------
 df = generate_sample_data()
@@ -143,7 +143,7 @@ def create_sparkline_figure(series, line_color="#8fd3ff", height=30):
     )
     return fig
 
-# ---------- KPIs (using plotly for sparklines to avoid image issues) ----------
+# ---------- KPIs (Fixed - no black boxes) ----------
 kpi_cols = st.columns(4)
 
 with kpi_cols[0]:
@@ -155,15 +155,17 @@ with kpi_cols[0]:
     )
     delta = avg_eff - (prev_avg if not np.isnan(prev_avg) else avg_eff)
     
-    st.markdown("<div class='kpi'>", unsafe_allow_html=True)
-    st.markdown("<h4>Average Efficiency</h4>", unsafe_allow_html=True)
-    st.markdown(f"<div class='value'>{avg_eff:.1f}%</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='delta'>{delta:+.2f}% vs prev</div>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class='kpi'>
+        <h4>Average Efficiency</h4>
+        <div class='value'>{avg_eff:.1f}%</div>
+        <div class='delta'>{delta:+.2f}% vs prev</div>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Use plotly for sparkline instead of matplotlib image
+    # Sparkline below the card
     sparkline_fig = create_sparkline_figure(filtered_df["Efficiency_X"], line_color="#8fd3ff")
     st.plotly_chart(sparkline_fig, use_container_width=True, config={'displayModeBar': False})
-    st.markdown("</div>", unsafe_allow_html=True)
 
 with kpi_cols[1]:
     total_fuel = filtered_df["Total_Fuel_Corrected"].sum()
@@ -174,38 +176,44 @@ with kpi_cols[1]:
     )
     delta_fuel = total_fuel - prev_fuel
     
-    st.markdown("<div class='kpi'>", unsafe_allow_html=True)
-    st.markdown("<h4>Total Fuel</h4>", unsafe_allow_html=True)
-    st.markdown(f"<div class='value'>{total_fuel:.0f} units</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='delta'>{delta_fuel:+.0f} units vs prev</div>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class='kpi'>
+        <h4>Total Fuel</h4>
+        <div class='value'>{total_fuel:.0f} units</div>
+        <div class='delta'>{delta_fuel:+.0f} units vs prev</div>
+    </div>
+    """, unsafe_allow_html=True)
     
     sparkline_fig = create_sparkline_figure(filtered_df["Total_Fuel_Corrected"], line_color="#9fe2a6")
     st.plotly_chart(sparkline_fig, use_container_width=True, config={'displayModeBar': False})
-    st.markdown("</div>", unsafe_allow_html=True)
 
 with kpi_cols[2]:
     avg_temp = filtered_df["Temperature"].mean()
     
-    st.markdown("<div class='kpi'>", unsafe_allow_html=True)
-    st.markdown("<h4>Avg Temp</h4>", unsafe_allow_html=True)
-    st.markdown(f"<div class='value'>{avg_temp:.1f}°C</div>", unsafe_allow_html=True)
-    st.markdown("<div class='delta'>&nbsp;</div>", unsafe_allow_html=True)  # Empty space for alignment
+    st.markdown(f"""
+    <div class='kpi'>
+        <h4>Avg Temp</h4>
+        <div class='value'>{avg_temp:.1f}°C</div>
+        <div class='delta'>&nbsp;</div>
+    </div>
+    """, unsafe_allow_html=True)
     
     sparkline_fig = create_sparkline_figure(filtered_df["Temperature"], line_color="#ffd28f")
     st.plotly_chart(sparkline_fig, use_container_width=True, config={'displayModeBar': False})
-    st.markdown("</div>", unsafe_allow_html=True)
 
 with kpi_cols[3]:
     avg_pres = filtered_df["Pressure"].mean()
     
-    st.markdown("<div class='kpi'>", unsafe_allow_html=True)
-    st.markdown("<h4>Avg Pressure</h4>", unsafe_allow_html=True)
-    st.markdown(f"<div class='value'>{avg_pres:.1f} kPa</div>", unsafe_allow_html=True)
-    st.markdown("<div class='delta'>&nbsp;</div>", unsafe_allow_html=True)  # Empty space for alignment
+    st.markdown(f"""
+    <div class='kpi'>
+        <h4>Avg Pressure</h4>
+        <div class='value'>{avg_pres:.1f} kPa</div>
+        <div class='delta'>&nbsp;</div>
+    </div>
+    """, unsafe_allow_html=True)
     
     sparkline_fig = create_sparkline_figure(filtered_df["Pressure"], line_color="#9bd1ff")
     st.plotly_chart(sparkline_fig, use_container_width=True, config={'displayModeBar': False})
-    st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
@@ -345,4 +353,3 @@ except Exception:
 if st.sidebar.checkbox("Show raw data", value=False):
     st.subheader("Raw data")
     st.dataframe(filtered_df.reset_index(drop=True), use_container_width=True)
-
